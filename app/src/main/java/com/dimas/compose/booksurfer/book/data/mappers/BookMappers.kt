@@ -1,5 +1,6 @@
 package com.dimas.compose.booksurfer.book.data.mappers
 
+import com.dimas.compose.booksurfer.book.data.database.BookEntity
 import com.dimas.compose.booksurfer.book.data.dto.SearchedBookDto
 import com.dimas.compose.booksurfer.book.domain.Book
 
@@ -20,5 +21,37 @@ fun SearchedBookDto.toBook(): Book {
         ratingsCount = ratingsCount,
         numPages = numPagesMedian,
         numEditions = numEditions ?: 0
+    )
+}
+
+fun Book.toBookEntity(): BookEntity {
+    return BookEntity(
+        id = id,
+        title = title,
+        description = description,
+        imageUrl = imageUrl,
+        languages = languages,
+        authors = authors,
+        firstPublishYear = firstPublishYear,
+        ratingsAverage = ratingsAverage,
+        ratingsCount = ratingsCount,
+        numPagesMedian = numPages,
+        numEditions = numEditions
+    )
+}
+
+fun BookEntity.toBook(): Book {
+    return Book(
+        id = id,
+        title = title,
+        description = description,
+        imageUrl = imageUrl,
+        languages = languages,
+        authors = authors,
+        firstPublishYear = firstPublishYear,
+        ratingsAverage = ratingsAverage,
+        ratingsCount = ratingsCount,
+        numPages = numPagesMedian,
+        numEditions = numEditions
     )
 }

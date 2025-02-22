@@ -6,4 +6,3 @@ import kotlinx.serialization.Serializable
 data class DescriptionDto(
     val value: String
 )
-
