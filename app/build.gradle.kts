@@ -83,6 +83,11 @@ dependencies {
     implementation(libs.bundles.ktor)
     implementation(libs.bundles.coil)
 
+    implementation(libs.orbit.mvi.core)
+    implementation(libs.orbit.mvi.viewmodel)
+    implementation(libs.orbit.mvi.compose)
+
+
     ksp(libs.androidx.room.compiler)
 
     testImplementation(libs.junit)

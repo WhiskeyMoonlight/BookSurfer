@@ -26,13 +26,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dimas.compose.booksurfer.R
 import com.dimas.compose.booksurfer.book.presentation.book_detail.components.BlurredImageBackground
 import com.dimas.compose.booksurfer.book.presentation.book_detail.components.BookChip
 import com.dimas.compose.booksurfer.book.presentation.book_detail.components.ChipSize
 import com.dimas.compose.booksurfer.book.presentation.book_detail.components.TitledContent
 import com.dimas.compose.booksurfer.core.presentation.ui.theme.SandYellow
+import org.orbitmvi.orbit.compose.collectAsState
+import org.orbitmvi.orbit.compose.collectSideEffect
 import kotlin.math.round
 
 @Composable
@@ -40,18 +41,20 @@ fun BookDetailScreenRoot(
     viewModel: BookDetailViewModel,
     onBackClick: () -> Unit
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state = viewModel.collectAsState().value
 
     BookDetailScreen(
         state = state,
         onAction = { action ->
-            when (action) {
-                is BookDetailAction.OnBackClick -> onBackClick()
-                else -> Unit
-            }
             viewModel.onAction(action)
         }
     )
+
+    viewModel.collectSideEffect { sideEffect ->
+        when (sideEffect) {
+            BookDetailSideEffect.OnBackClick -> onBackClick()
+        }
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.dimas.compose.booksurfer.app.Route
+import com.dimas.compose.booksurfer.book.domain.Book
 import com.dimas.compose.booksurfer.book.domain.BookRepository
 import com.dimas.compose.booksurfer.core.domain.onSuccess
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,71 +16,72 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.orbitmvi.orbit.Container
+import org.orbitmvi.orbit.ContainerHost
+import org.orbitmvi.orbit.viewmodel.container
 
 class BookDetailViewModel(
     private val bookRepository: BookRepository,
-    savedStateHandle: SavedStateHandle
-) : ViewModel() {
+    savedStateHandle: SavedStateHandle,
+) : ViewModel(), ContainerHost<BookDetailState, BookDetailSideEffect> {
 
     private val bookId = savedStateHandle.toRoute<Route.BookDetail>().id
 
-    private val _state = MutableStateFlow(BookDetailState())
-    val state = _state
-        .onStart {
+    override val container =
+        container<BookDetailState, BookDetailSideEffect>(BookDetailState()) {
             fetchBookDescription()
             observeFavoriteStatus()
         }
-        .stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(5_000L),
-            _state.value
-        )
 
     fun onAction(action: BookDetailAction) {
         when (action) {
-            BookDetailAction.OnBackClick -> Unit
-
             BookDetailAction.OnFavoriteClick -> {
-                viewModelScope.launch {
-                    if (state.value.isFavorite) {
-                        bookRepository.deleteFromFavorites(bookId)
-                    } else {
-                        state.value.book?.let { book ->
-                            bookRepository.markAsFavorite(book)
-                        }
-                    }
-                }
+                handleOnFavoriteClick()
             }
 
             is BookDetailAction.OnSelectedBookChange -> {
-                _state.update { prevState ->
-                    prevState.copy(
-                        book = action.book
-                    )
-                }
+                handleOnSelectedBookChange(action.book)
+            }
+
+            BookDetailAction.OnBackClick -> {
+                handleOnBackClick()
             }
         }
     }
 
-    private fun observeFavoriteStatus() {
+    private fun handleOnSelectedBookChange(book: Book?) = intent {
+        reduce { state.copy(book = book) }
+    }
+
+    private fun handleOnFavoriteClick() = intent {
+        if (state.isFavorite)
+            bookRepository.deleteFromFavorites(bookId)
+        else state.book?.let { book ->
+            bookRepository.markAsFavorite(book)
+        }
+    }
+
+    private fun handleOnBackClick() = intent {
+        postSideEffect(BookDetailSideEffect.OnBackClick)
+    }
+
+    private fun observeFavoriteStatus() = intent {
         bookRepository
             .isBookFavorite(bookId)
             .onEach { isFavorite ->
-                _state.update { prevState ->
-                    prevState.copy(isFavorite = isFavorite)
-                }
+                reduce { state.copy(isFavorite = isFavorite) }
             }
             .launchIn(viewModelScope)
     }
 
-    private fun fetchBookDescription() {
+    private fun fetchBookDescription() = intent {
         viewModelScope.launch {
             bookRepository
                 .getBookDescription(bookId)
                 .onSuccess { description ->
-                    _state.update { prevState ->
-                        prevState.copy(
-                            book = prevState.book?.copy(
+                    reduce {
+                        state.copy(
+                            book = state.book?.copy(
                                 description = description
                             ),
                             isLoading = false
