@@ -49,6 +49,7 @@ fun BlurredImageBackground(
     imageUrl: String?,
     isFavorite: Boolean,
     onFavoriteClick: () -> Unit,
+    onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
@@ -100,7 +101,7 @@ fun BlurredImageBackground(
         }
 
         IconButton(
-            onClick = {},
+            onClick = onBackClick,
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(top = 16.dp, start = 16.dp)
