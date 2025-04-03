@@ -8,15 +8,9 @@ import com.dimas.compose.booksurfer.app.Route
 import com.dimas.compose.booksurfer.book.domain.Book
 import com.dimas.compose.booksurfer.book.domain.BookRepository
 import com.dimas.compose.booksurfer.core.domain.onSuccess
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.orbitmvi.orbit.Container
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.viewmodel.container
 
@@ -90,5 +84,4 @@ class BookDetailViewModel(
                 }
         }
     }
-
 }

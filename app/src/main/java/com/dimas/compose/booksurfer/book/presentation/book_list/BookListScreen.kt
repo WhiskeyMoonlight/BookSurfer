@@ -24,7 +24,6 @@ import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,7 +31,6 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dimas.compose.booksurfer.R
 import com.dimas.compose.booksurfer.book.domain.Book
 import com.dimas.compose.booksurfer.book.presentation.book_list.components.BookList
@@ -42,13 +40,15 @@ import com.dimas.compose.booksurfer.core.presentation.ui.theme.DarkBlue
 import com.dimas.compose.booksurfer.core.presentation.ui.theme.DesertWhite
 import com.dimas.compose.booksurfer.core.presentation.ui.theme.SandYellow
 import org.koin.androidx.compose.koinViewModel
+import org.orbitmvi.orbit.compose.collectAsState
+import org.orbitmvi.orbit.compose.collectSideEffect
 
 @Composable
 fun BookListScreenRoot(
     viewModel: BookListViewModel = koinViewModel(),
     onBookClick: (Book) -> Unit
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state = viewModel.collectAsState().value
 
     BookListScreen(
         state = state,
@@ -64,6 +64,12 @@ fun BookListScreenRoot(
             viewModel.onAction(action)
         }
     )
+
+    viewModel.collectSideEffect { sideEffect ->
+        when(sideEffect) {
+            is BookListSideEffect.OnBookClick -> onBookClick(sideEffect.book)
+        }
+    }
 }
 
 @Composable

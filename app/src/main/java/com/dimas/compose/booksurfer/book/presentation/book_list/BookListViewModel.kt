@@ -9,74 +9,70 @@ import com.dimas.compose.booksurfer.core.domain.onSuccess
 import com.dimas.compose.booksurfer.core.presentation.toUiText
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
+import org.orbitmvi.orbit.ContainerHost
+import org.orbitmvi.orbit.viewmodel.container
 
 class BookListViewModel(
     private val bookRepository: BookRepository
-) : ViewModel() {
+) : ViewModel(), ContainerHost<BookListState, BookListSideEffect> {
 
     private var cachedBooks = emptyList<Book>()
 
     private var searchJob: Job? = null
     private var observeFavoriteJob: Job? = null
 
-    private val _state = MutableStateFlow(BookListState())
-    val state = _state
-        .onStart {
+    override val container =
+        container<BookListState, BookListSideEffect>(BookListState()) {
             if (cachedBooks.isEmpty()) {
                 observeSearchQuery()
             }
             observeFavoriteBooks()
         }
-        .stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(5_000L),
-            _state.value
-        )
 
     fun onAction(action: BookListAction) {
         when (action) {
-            is BookListAction.OnBookClick -> Unit
+            is BookListAction.OnBookClick -> handleOnBookClick(action.book)
 
             is BookListAction.OnSearchQueryChange -> {
-                _state.update { prevState ->
-                    prevState.copy(searchQuery = action.query)
-                }
+                handleOnSearchQueryChange(action.query)
             }
 
             is BookListAction.OnTabSelected -> {
-                _state.update { prevState ->
-                    prevState.copy(selectedTabIndex = action.index)
-                }
+                handleOnTabSelected(action.index)
             }
         }
     }
 
+    private fun handleOnBookClick(book: Book) = intent {
+        postSideEffect(BookListSideEffect.OnBookClick(book))
+    }
+
+    private fun handleOnSearchQueryChange(query: String) = intent {
+        reduce { state.copy(searchQuery = query) }
+    }
+
+    private fun handleOnTabSelected(index: Int) = intent {
+        reduce { state.copy(selectedTabIndex = index) }
+    }
+
     @OptIn(FlowPreview::class)
-    private fun observeSearchQuery() {
-        state
+    private fun observeSearchQuery(): Job = intent {
+        container.stateFlow
             .map { it.searchQuery }
             .distinctUntilChanged()
             .debounce(500L)
             .onEach { query ->
                 when {
-                    query.isBlank() -> {
-                        _state.update { prevState ->
-                            prevState.copy(
-                                errorMessage = null,
-                                searchResults = cachedBooks
-                            )
-                        }
+                    query.isBlank() -> reduce {
+                        state.copy(
+                            errorMessage = null,
+                            searchResults = cachedBooks
+                        )
                     }
 
                     query.length >= 2 -> {
@@ -88,17 +84,13 @@ class BookListViewModel(
             .launchIn(viewModelScope)
     }
 
-    private fun searchBooks(query: String) = viewModelScope.launch {
-        _state.update { prevState ->
-            prevState.copy(
-                isLoading = true
-            )
-        }
+    private fun searchBooks(query: String) = intent {
+        reduce { state.copy(isLoading = true) }
         bookRepository
             .searchBooks(query)
             .onSuccess { searchResults ->
-                _state.update { prevState ->
-                    prevState.copy(
+                reduce {
+                    state.copy(
                         isLoading = false,
                         errorMessage = null,
                         searchResults = searchResults
@@ -106,8 +98,8 @@ class BookListViewModel(
                 }
             }
             .onError { error ->
-                _state.update { prevState ->
-                    prevState.copy(
+                reduce {
+                    state.copy(
                         isLoading = false,
                         errorMessage = error.toUiText(),
                         searchResults = emptyList()
@@ -116,13 +108,13 @@ class BookListViewModel(
             }
     }
 
-    private fun observeFavoriteBooks() {
+    private fun observeFavoriteBooks() = intent {
         observeFavoriteJob?.cancel()
         observeFavoriteJob = bookRepository
             .getFavoriteBooks()
             .onEach { favoriteBooks ->
-                _state.update { prevState ->
-                    prevState.copy(
+                reduce {
+                    state.copy(
                         favoriteBooks = favoriteBooks
                     )
                 }
